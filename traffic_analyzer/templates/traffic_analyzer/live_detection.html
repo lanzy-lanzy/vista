@@ -1,0 +1,129 @@
+{% extends "traffic_analyzer/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">Live Traffic Detection</h1>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Video Feed -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-lg p-4">
+                <h2 class="text-xl font-semibold mb-4">Live Feed</h2>
+                <div class="aspect-w-16 aspect-h-9 bg-gray-900 rounded-lg overflow-hidden">
+                    <img id="videoFeed" src="{% url 'live_feed' %}" class="w-full h-full object-contain" alt="Live video feed">
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Panel -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-lg p-4 space-y-6">
+                <h2 class="text-xl font-semibold">Live Statistics</h2>
+                
+                <!-- Vehicle Count -->
+                <div>
+                    <h3 class="text-lg font-medium mb-2">Vehicle Count</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-600">Cars</p>
+                            <p id="carCount" class="text-2xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-600">Trucks</p>
+                            <p id="truckCount" class="text-2xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="bg-yellow-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-600">Buses</p>
+                            <p id="busCount" class="text-2xl font-bold text-yellow-600">0</p>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-600">Motorcycles</p>
+                            <p id="motorcycleCount" class="text-2xl font-bold text-purple-600">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Traffic Flow -->
+                <div>
+                    <h3 class="text-lg font-medium mb-2">Traffic Flow</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div id="trafficFlow"></div>
+                    </div>
+                </div>
+
+                <!-- Detection Status -->
+                <div>
+                    <h3 class="text-lg font-medium mb-2">Detection Status</h3>
+                    <div class="flex items-center space-x-2">
+                        <div id="statusIndicator" class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span id="statusText" class="text-sm text-gray-600">Active</span>
+                    </div>
+                    <p id="fpsCounter" class="text-sm text-gray-500 mt-1">FPS: 30</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Plotly graph for traffic flow
+    const trafficFlowData = {
+        x: [],
+        y: [],
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Vehicles per minute'
+    };
+
+    const layout = {
+        margin: { t: 20, r: 20, l: 40, b: 40 },
+        height: 200,
+        xaxis: { title: 'Time' },
+        yaxis: { title: 'Vehicles' }
+    };
+
+    Plotly.newPlot('trafficFlow', [trafficFlowData], layout);
+
+    // WebSocket connection for real-time updates
+    const socket = new WebSocket(
+        'ws://' + window.location.host + '/ws/live_detection/'
+    );
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        // Update vehicle counts
+        document.getElementById('carCount').textContent = data.counts.car;
+        document.getElementById('truckCount').textContent = data.counts.truck;
+        document.getElementById('busCount').textContent = data.counts.bus;
+        document.getElementById('motorcycleCount').textContent = data.counts.motorcycle;
+
+        // Update FPS
+        document.getElementById('fpsCounter').textContent = `FPS: ${data.fps}`;
+
+        // Update traffic flow graph
+        const update = {
+            x: [[new Date().toLocaleTimeString()]],
+            y: [[data.total_vehicles]]
+        };
+
+        Plotly.extendTraces('trafficFlow', update, [0]);
+
+        // Keep only last 30 data points
+        if (trafficFlowData.x.length > 30) {
+            Plotly.relayout('trafficFlow', {
+                xaxis: {
+                    range: [trafficFlowData.x[trafficFlowData.x.length - 30], trafficFlowData.x[trafficFlowData.x.length - 1]]
+                }
+            });
+        }
+    };
+
+    socket.onclose = function(e) {
+        console.error('WebSocket closed unexpectedly');
+        document.getElementById('statusIndicator').classList.remove('bg-green-500');
+        document.getElementById('statusIndicator').classList.add('bg-red-500');
+        document.getElementById('statusText').textContent = 'Disconnected';
+    };
+</script>
+{% endblock %}

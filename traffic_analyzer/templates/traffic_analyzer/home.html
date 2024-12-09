@@ -1,0 +1,94 @@
+{% extends "traffic_analyzer/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Traffic Vision Analyzer</h1>
+        <p class="text-xl text-gray-600">Analyze traffic patterns with advanced AI detection</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <!-- Upload Video Card -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-2xl font-bold mb-4">Upload Video</h2>
+                <p class="text-gray-600 mb-4">Upload and analyze traffic footage to get detailed insights about vehicle patterns.</p>
+                <a href="{% url 'video_upload' %}" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    Start Analysis
+                </a>
+            </div>
+        </div>
+
+        <!-- Live Detection Card -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-2xl font-bold mb-4">Live Detection</h2>
+                <p class="text-gray-600 mb-4">Connect to a camera feed and analyze traffic in real-time with our AI detection system.</p>
+                <a href="{% url 'live_detection' %}" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    Start Live Feed
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Analyses -->
+    {% if recent_analyses %}
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-6">Recent Analyses</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for analysis in recent_analyses %}
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-semibold">Analysis #{{ analysis.id }}</h3>
+                    <span class="text-sm text-gray-500">{{ analysis.timestamp|date:"M d, Y" }}</span>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-sm text-gray-600">Status: 
+                        {% if analysis.processed %}
+                        <span class="text-green-600">Completed</span>
+                        {% else %}
+                        <span class="text-yellow-600">Processing ({{ analysis.processing_progress|floatformat:0 }}%)</span>
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'analysis_results' analysis.id %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                        View Results →
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Features Section -->
+    <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="text-center">
+            <div class="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">Accurate Detection</h3>
+            <p class="text-gray-600">Powered by YOLOv8 for precise vehicle detection and classification</p>
+        </div>
+        <div class="text-center">
+            <div class="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">Real-time Processing</h3>
+            <p class="text-gray-600">Process live video feeds with minimal latency</p>
+        </div>
+        <div class="text-center">
+            <div class="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">Detailed Analytics</h3>
+            <p class="text-gray-600">Get comprehensive insights with visual data representation</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

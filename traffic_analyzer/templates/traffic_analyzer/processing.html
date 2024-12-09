@@ -1,0 +1,132 @@
+{% extends 'traffic_analyzer/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Main Processing Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex justify-between items-start mb-6">
+                <h2 class="text-2xl font-bold">Video Analysis #{{ analysis_id }}</h2>
+                <span class="text-sm text-gray-500">{{ upload_time }}</span>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-lg font-semibold text-gray-700">Processing Progress</span>
+                    <div class="flex items-center space-x-4">
+                        <span id="fps-counter" class="text-sm font-medium text-gray-600">0 FPS</span>
+                        <span id="progress-percentage" class="text-lg font-bold text-blue-600">0%</span>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Progress Bar -->
+                <div class="relative pt-1">
+                    <div class="overflow-hidden h-6 text-xs flex rounded-full bg-gray-200">
+                        <div id="progress-bar" 
+                             class="transition-all duration-300 ease-out shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-blue-600" 
+                             style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div class="mt-2 flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Status:</span>
+                    <span id="status-badge" class="px-3 py-1 rounded-full text-sm font-semibold 
+                        {% if status == 'completed' %}bg-green-100 text-green-800
+                        {% elif status == 'failed' %}bg-red-100 text-red-800
+                        {% elif status == 'processing' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ status|title }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Video Preview with Detection -->
+            <div class="relative aspect-video bg-black rounded-lg overflow-hidden mb-8">
+                <video id="source-video" class="hidden"></video>
+                <canvas id="detection-canvas" class="w-full h-full"></canvas>
+                
+                <!-- Loading Overlay with Pulse Animation -->
+                <div id="loading-overlay" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="inline-block animate-pulse">
+                            <svg class="animate-spin h-12 w-12 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-xl font-bold text-white mt-4">Processing Video</p>
+                        <p id="loading-text" class="text-sm text-gray-300 mt-2">Initializing detection...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Car Stats -->
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6">
+                    <div class="flex justify-between items-center">
+                        <div class="text-blue-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M5 10l2-2h10l2 2m0 0v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                            </svg>
+                        </div>
+                        <span id="car-count" class="text-3xl font-bold text-blue-600">0</span>
+                    </div>
+                    <p class="text-blue-600 mt-2">Cars Detected</p>
+                </div>
+
+                <!-- Truck Stats -->
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6">
+                    <div class="flex justify-between items-center">
+                        <div class="text-green-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                                <path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                            </svg>
+                        </div>
+                        <span id="truck-count" class="text-3xl font-bold text-green-600">0</span>
+                    </div>
+                    <p class="text-green-600 mt-2">Trucks Detected</p>
+                </div>
+
+                <!-- Bus Stats -->
+                <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6">
+                    <div class="flex justify-between items-center">
+                        <div class="text-yellow-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 7h8m-8 4h8m-8 4h8M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                            </svg>
+                        </div>
+                        <span id="bus-count" class="text-3xl font-bold text-yellow-600">0</span>
+                    </div>
+                    <p class="text-yellow-600 mt-2">Buses Detected</p>
+                </div>
+            </div>
+
+            <!-- Processing Log -->
+            <div class="bg-gray-50 rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Processing Log</h3>
+                <div id="processing-log" class="h-48 overflow-y-auto font-mono text-sm bg-white rounded-lg p-4 border border-gray-200">
+                    <div class="text-gray-500">Waiting for processing to begin...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WebSocket Connection Status -->
+<div id="connection-status" class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-sm font-semibold hidden"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/processing.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeProcessing({{ analysis_id }}, "{{ video_url|safe }}");
+    });
+</script>
+{% endblock %}
